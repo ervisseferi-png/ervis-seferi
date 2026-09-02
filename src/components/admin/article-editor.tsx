@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { ChevronDown } from "lucide-react";
 import { savePost } from "@/lib/cms/queries";
-import { slugify } from "@/lib/utils";
-import { flattenTree, pathLabel, toTree } from "@/lib/cms/tree";
+import { cn, slugify } from "@/lib/utils";
+import { pathLabel, pathOf, toTree, type TreeNode } from "@/lib/cms/tree";
 import type { Category, Post, PostCategoryLink, PostStatus } from "@/lib/cms/types";
 import { Field, GhostButton, GoldButton, TextArea, TextInput } from "./fields";
 
@@ -60,6 +61,175 @@ function toDatetimeLocal(iso: string | null) {
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function CategoryTreePicker({
+  categories,
+  selectedIds,
+  onToggle,
+  categoryOrder,
+  onOrderChange,
+  usedCount,
+}: {
+  categories: Category[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+  categoryOrder: Record<number, number>;
+  onOrderChange: (id: number, n: number) => void;
+  usedCount: (id: number) => number;
+}) {
+  const tree = useMemo(() => toTree(categories), [categories]);
+  const [openIds, setOpenIds] = useState<Set<number>>(() => {
+    const open = new Set<number>();
+    for (const id of selectedIds) {
+      for (const cat of pathOf(id, categories)) open.add(cat.id);
+    }
+    return open;
+  });
+
+  function toggleOpen(id: number) {
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      {selectedIds.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {selectedIds.map((id) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onToggle(id)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/10 px-3 text-xs text-gold-400"
+            >
+              {pathLabel(id, categories)}
+              <span aria-hidden="true">×</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="space-y-2">
+        {tree.map((node) => (
+          <PickerBranch
+            key={node.id}
+            node={node}
+            depth={1}
+            openIds={openIds}
+            selectedIds={selectedIds}
+            onToggle={onToggle}
+            onToggleOpen={toggleOpen}
+            categoryOrder={categoryOrder}
+            onOrderChange={onOrderChange}
+            usedCount={usedCount}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PickerBranch({
+  node,
+  depth,
+  openIds,
+  selectedIds,
+  onToggle,
+  onToggleOpen,
+  categoryOrder,
+  onOrderChange,
+  usedCount,
+}: {
+  node: TreeNode<Category>;
+  depth: number;
+  openIds: Set<number>;
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+  onToggleOpen: (id: number) => void;
+  categoryOrder: Record<number, number>;
+  onOrderChange: (id: number, n: number) => void;
+  usedCount: (id: number) => number;
+}) {
+  const checked = selectedIds.includes(node.id);
+  const open = openIds.has(node.id);
+  const hasKids = node.children.length > 0;
+  const others = usedCount(node.id);
+
+  return (
+    <div className={depth > 1 ? "border-l border-white/10 pl-3 sm:pl-4" : ""}>
+      <div className="rounded-xl border border-white/10 bg-navy-900/60">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4">
+          <label className="flex min-h-11 min-w-0 flex-1 items-center gap-3 text-sm text-slate-200">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={() => onToggle(node.id)}
+              className="h-4 w-4 shrink-0"
+            />
+            <span className="truncate">{node.name}</span>
+          </label>
+          {checked ? (
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <span>Position</span>
+              <input
+                type="number"
+                min={1}
+                value={categoryOrder[node.id] ?? 1}
+                onChange={(e) => onOrderChange(node.id, Number(e.target.value) || 1)}
+                className="h-10 w-16 rounded-lg border border-white/10 bg-navy-950 px-2 text-center text-white"
+              />
+              {others > 0 ? (
+                <span className="hidden sm:inline">
+                  {others} autre{others > 1 ? "s" : ""}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+          {hasKids ? (
+            <button
+              type="button"
+              onClick={() => onToggleOpen(node.id)}
+              aria-expanded={open}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg text-gold-400 hover:bg-white/5"
+            >
+              <ChevronDown
+                className={cn(
+                  "h-5 w-5 transition-transform duration-200",
+                  open ? "rotate-180" : "rotate-0",
+                )}
+              />
+              <span className="sr-only">
+                {open ? "Replier" : "Déplier"} {node.name}
+              </span>
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {open && hasKids ? (
+        <div className="mt-2 space-y-2">
+          {node.children.map((child) => (
+            <PickerBranch
+              key={child.id}
+              node={child}
+              depth={depth + 1}
+              openIds={openIds}
+              selectedIds={selectedIds}
+              onToggle={onToggle}
+              onToggleOpen={onToggleOpen}
+              categoryOrder={categoryOrder}
+              onOrderChange={onOrderChange}
+              usedCount={usedCount}
+            />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 export function ArticleEditor({
@@ -233,7 +403,7 @@ export function ArticleEditor({
       .filter((p) => p.id !== form.id)
       .filter((p) =>
         links.some((l) => l.post_id === p.id && l.category_id === categoryId),
-      );
+      ).length;
 
   return (
     <form
@@ -305,64 +475,22 @@ export function ArticleEditor({
           Catégories et ordre d’apparition
         </div>
         <p className="mb-3 text-xs text-slate-500">
-          Un article peut être rattaché à n’importe quel niveau (catégorie, sous-catégorie
-          ou détail).
+          Dépliez une rubrique pour voir ses sous-catégories. Un article peut être
+          rattaché à n’importe quel niveau.
         </p>
-        <div className="space-y-2">
-          {flattenTree(toTree(categories)).map(({ node: cat, depth }) => {
-            const checked = form.categoryIds.includes(cat.id);
-            const others = usedPositions(cat.id);
-            return (
-              <div
-                key={cat.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-navy-900/60 px-4 py-3"
-                style={{ marginLeft: (depth - 1) * 16 }}
-              >
-                <label className="flex min-h-11 items-center gap-3 text-sm text-slate-200">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggleCategory(cat.id)}
-                    className="h-4 w-4"
-                  />
-                  <span>
-                    {cat.name}
-                    {depth > 1 ? (
-                      <span className="ml-2 text-[11px] text-slate-500">
-                        {pathLabel(cat.id, categories)}
-                      </span>
-                    ) : null}
-                  </span>
-                </label>
-                {checked ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <span>Position</span>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.categoryOrder[cat.id] ?? 1}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          categoryOrder: {
-                            ...f.categoryOrder,
-                            [cat.id]: Number(e.target.value) || 1,
-                          },
-                        }))
-                      }
-                      className="h-10 w-16 rounded-lg border border-white/10 bg-navy-950 px-2 text-center text-white"
-                    />
-                    {others.length > 0 ? (
-                      <span className="hidden sm:inline">
-                        {others.length} autre{others.length > 1 ? "s" : ""} dans cette rubrique
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+        <CategoryTreePicker
+          categories={categories}
+          selectedIds={form.categoryIds}
+          onToggle={toggleCategory}
+          categoryOrder={form.categoryOrder}
+          onOrderChange={(id, n) =>
+            setForm((f) => ({
+              ...f,
+              categoryOrder: { ...f.categoryOrder, [id]: n },
+            }))
+          }
+          usedCount={usedPositions}
+        />
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">

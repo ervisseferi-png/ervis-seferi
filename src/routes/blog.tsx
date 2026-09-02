@@ -1,15 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getPublicSite, listLivePosts } from "@/lib/cms/queries";
-import { PostCard } from "@/components/post-card";
-import { DEFAULT_SITE } from "@/lib/cms/types";
+import { getHomeData } from "@/lib/cms/queries";
+import { CategoryShowcase } from "@/components/category-showcase";
+import { DEFAULT_SITE, defaultCategoryShowcase } from "@/lib/cms/types";
 
 export const Route = createFileRoute("/blog")({
   loader: async () => {
-    const [{ site }, posts] = await Promise.all([
-      getPublicSite().catch(() => ({ site: DEFAULT_SITE, categories: [] })),
-      listLivePosts().catch(() => []),
-    ]);
-    return { site, posts };
+    try {
+      return await getHomeData();
+    } catch {
+      return {
+        site: DEFAULT_SITE,
+        categories: defaultCategoryShowcase(),
+        articleCount: 0,
+      };
+    }
   },
   component: BlogPage,
   head: ({ loaderData }) => ({
@@ -22,7 +26,7 @@ export const Route = createFileRoute("/blog")({
 });
 
 function BlogPage() {
-  const { site, posts } = Route.useLoaderData();
+  const { site, categories } = Route.useLoaderData();
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6">
@@ -31,20 +35,7 @@ function BlogPage() {
         <p className="mt-4 leading-relaxed text-slate-400">{site.blog_intro}</p>
       </div>
 
-      {posts.length === 0 ? (
-        <div className="mt-16 rounded-2xl border border-dashed border-white/10 bg-navy-800/30 p-12 text-center">
-          <p className="text-slate-400">Aucun article publié pour le moment.</p>
-          <p className="mt-2 text-sm text-slate-500">
-            Les premiers contenus arriveront bientôt.
-          </p>
-        </div>
-      ) : (
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {posts.map((post) => (
-            <PostCard key={post.id} post={post} />
-          ))}
-        </div>
-      )}
+      <CategoryShowcase categories={categories} />
     </div>
   );
 }
