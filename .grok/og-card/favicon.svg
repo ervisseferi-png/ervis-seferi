@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Ervis Seferi">
+  <rect width="32" height="32" rx="6" fill="#060d1a"/>
+  <text
+    x="16"
+    y="21.4"
+    text-anchor="middle"
+    font-family="Georgia, 'Liberation Serif', 'Times New Roman', serif"
+    font-size="13.5"
+    font-weight="700"
+    fill="#d4af57"
+    letter-spacing="0.4">ES</text>
+</svg>
