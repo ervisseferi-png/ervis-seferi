@@ -232,7 +232,10 @@ export function homeFrom(doc: CmsDocument): HomeData {
     const assigned = doc.links
       .filter((l) => l.category_id === cat.id && byId.has(l.post_id))
       .sort((a, b) => a.sort_order - b.sort_order || a.post_id - b.post_id)
-      .map((l) => toPublicPost(byId.get(l.post_id)!, source, doc.links));
+      .map((l) => {
+        const post = toPublicPost(byId.get(l.post_id)!, source, doc.links);
+        return { ...post, content: "" };
+      });
     return { ...cat, posts: assigned };
   });
   return { site: doc.site, categories: cats, articleCount: live.length };

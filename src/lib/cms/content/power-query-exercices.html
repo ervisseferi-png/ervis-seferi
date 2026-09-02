@@ -1,0 +1,89 @@
+<p>Dernière fiche de la leçon. Les trois exercices se font sur les <strong>mêmes fichiers</strong>, dans de <strong>nouvelles requêtes</strong>, sans modifier celles des exemples. Parcours Excel, onglet Données.</p>
+<p class="pq-files">
+  <a class="pq-file" href="/kb/power-query/grand_livre_2026_brut.csv" download>grand_livre_2026_brut.csv</a>
+  <a class="pq-file" href="/kb/power-query/plan_comptable.csv" download>plan_comptable.csv</a>
+</p>
+<p>Revenez aux <a href="/blog/power-query-fondamentaux">fondamentaux</a> ou au <a href="/blog/power-query-grand-livre">nettoyage du grand livre</a> si une étape manque.</p>
+
+<figure>
+  <img src="/kb/power-query/cover-exercices.jpg" alt="Feuilles de travail et stylo, pour s’exercer" />
+  <figcaption>Le point de bascule : ajouter deux lignes au CSV, actualiser, et voir le filet s’appliquer tout seul.</figcaption>
+</figure>
+
+<h2>Exercice 1 — le journal des ventes</h2>
+<h3>Énoncé</h3>
+<p>Produire une table ne contenant que les écritures du journal VE, colonnes Date, Piece, Compte, Libelle, Debit, Credit. Combien de lignes ? Quel total débit ?</p>
+<h3>Solution</h3>
+<ol>
+  <li>Clic droit sur <strong>GrandLivre</strong> → Dupliquer. Renommer <strong>JournalVentes</strong>.</li>
+  <li>Filtre Journal = <strong>VE</strong> uniquement.</li>
+  <li>Sélectionner Date, puis Ctrl + clic sur Piece, Compte, Libelle, Debit, Credit.</li>
+  <li><strong>Accueil</strong> → <strong>Supprimer les colonnes</strong> → <strong>Supprimer les autres colonnes</strong>.</li>
+  <li>Debit → Transformer → Statistiques → Somme. Lire, supprimer l’étape. Compter les lignes, lire, supprimer l’étape.</li>
+</ol>
+<h3>Résultat attendu</h3>
+<p><strong>6 lignes</strong>. Total Débit VE : <strong>23 800,00</strong> (12 500,00 + 4 400,00 + 6 900,00). Total Crédit : <strong>23 400,00</strong> (12 500,00 + 4 000,00 + 6 900,00). L’écart de 400,00 est celui de VE-2026-007, déjà identifié.</p>
+
+<h2>Exercice 2 — le solde par compte</h2>
+<h3>Énoncé</h3>
+<p>Pour chaque compte : total débit, total crédit, solde (débit − crédit), trié par solde décroissant. Quel compte a le solde débiteur le plus élevé ?</p>
+<h3>Solution</h3>
+<ol>
+  <li>Dupliquer GrandLivre → <strong>SoldesParCompte</strong>.</li>
+  <li>Colonne Compte → <strong>Regrouper par</strong> → Avancé. Agrégations : TotalDebit = Somme de Debit, TotalCredit = Somme de Credit.</li>
+  <li>Remplacer les null de TotalDebit et TotalCredit par 0.</li>
+  <li>Colonne personnalisée <strong>Solde</strong> :</li>
+</ol>
+<pre><code>[TotalDebit] - [TotalCredit]</code></pre>
+<ol start="5">
+  <li>Solde en Nombre décimal, tri décroissant.</li>
+</ol>
+<h3>Résultat attendu</h3>
+<p>Le compte <strong>641000</strong> (Rémunérations du personnel) porte le solde débiteur le plus élevé : <strong>45 000,00</strong> (22 500,00 en janvier et 22 500,00 en février, aucun crédit). Ensuite 512000 à <strong>15 865,00</strong> et 645000 à <strong>9 600,00</strong>. Le compte <strong>401000</strong> (Fournisseurs) a le solde créditeur le plus marqué : <strong>− 62 450,50</strong>. La somme de Solde vaut <strong>400,00</strong> : c’est l’écart résiduel, votre contrôle de cohérence.</p>
+
+<h2>Exercice 3 — l’actualisation, la vraie preuve</h2>
+<h3>Énoncé</h3>
+<p>Démontrer que le travail est rejouable : ajouter deux lignes au fichier source, actualiser, vérifier que tout le nettoyage s’applique sans intervention manuelle.</p>
+<h3>Solution</h3>
+<ol>
+  <li>Enregistrer le classeur, fermer Excel (l’éditeur doit être fermé).</li>
+  <li>Ouvrir <code>grand_livre_2026_brut.csv</code> dans le <strong>Bloc-notes</strong>, pas dans Excel : Excel réécrit les séparateurs et casserait la démonstration.</li>
+  <li>Ajouter à la fin, exactement :</li>
+</ol>
+<pre><code>"12/05/2026","VE","VE-2026-020","411000","VENTE CLIENT  delta","5 500,00",""
+"12/05/2026","VE","VE-2026-020","701000","vente client delta","","5 500,00"</code></pre>
+<ol start="4">
+  <li>Enregistrer, fermer le fichier.</li>
+  <li>Rouvrir le classeur. Onglet <strong>Données</strong> → <strong>Actualiser tout</strong>.</li>
+  <li>Rouvrir l’éditeur (Données → Lancer l’éditeur Power Query) et observer GrandLivre.</li>
+</ol>
+<h3>Résultat attendu</h3>
+<p><strong>30 lignes</strong>. Total Débit <strong>111 785,50</strong>, total Crédit <strong>111 385,50</strong>, écart inchangé à <strong>400,00</strong>. Le nouveau libellé s’affiche <strong>Vente Client Delta</strong> sur les deux lignes : espace double réduit, casse normalisée, automatiquement. La date du 12/05/2026 est reconnue sans geste de plus.</p>
+<blockquote>Le travail n’a pas été fait une fois, il a été décrit. Un mois de plus ne coûte plus rien.</blockquote>
+
+<figure>
+  <img src="/kb/power-query/img-etapes.jpg" alt="Les étapes se rejouent à chaque actualisation" />
+  <figcaption>Actualiser, ce n’est pas « refaire ». C’est relire la source et rejouer la frise d’étapes.</figcaption>
+</figure>
+
+<h2>Ce qu’il faut retenir</h2>
+<ol>
+  <li><strong>Transformer les données</strong>, jamais Charger, tant qu’on ne connaît pas le fichier.</li>
+  <li><strong>Les types d’abord</strong>, avec les paramètres régionaux français.</li>
+  <li><strong>Chaque correction est une étape nommée.</strong> C’est la piste d’audit, et c’est ce qui rend le mois suivant gratuit.</li>
+  <li><strong>Une anomalie comptable se signale, elle ne se corrige pas</strong> dans l’outil de préparation : l’écart de 400,00 de VE-2026-007 reste visible à dessein.</li>
+  <li><strong>Le fichier source ne se touche pas</strong>, sauf l’exercice 3 où l’on ajoute des lignes pour prouver l’actualisation — jamais pour « réparer » un défaut.</li>
+  <li>Une requête de contrôle, dupliquée et chargée en connexion seule, coûte trois clics et évite les faux totaux.</li>
+  <li>Dans Excel, on n’édite pas le tableau chargé : <strong>Actualiser tout</strong> l’écraserait.</li>
+</ol>
+
+<h2>Fichiers de la leçon</h2>
+<table>
+  <thead><tr><th>Fichier</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><a href="/kb/power-query/grand_livre_2026_brut.csv" download>grand_livre_2026_brut.csv</a></td><td>Grand livre 2026, 29 écritures, 8 défauts volontaires. Support des exemples et des exercices.</td></tr>
+    <tr><td><a href="/kb/power-query/plan_comptable.csv" download>plan_comptable.csv</a></td><td>Plan comptable, 15 comptes. Support de l’exemple 3.</td></tr>
+  </tbody>
+</table>
+<p>Parcours : Conseil sur Mesure, phase 1 (Power BI comme instrument financier). Domaine PL-300 : préparer les données. Vidéo d’accompagnement : <a href="https://www.youtube.com/watch?v=4rCgZX9jEnA">Formation Power Query – les bases à savoir</a>.</p>
+<p class="pq-next">Retour au début : <a href="/blog/power-query-fondamentaux">Power Query, les fondamentaux</a>.</p>

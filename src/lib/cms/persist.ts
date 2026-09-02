@@ -8,6 +8,7 @@ import {
   publicSnapshot,
   type CmsDocument,
 } from "./document";
+import { mergePowerQuerySeed } from "./seed-power-query";
 import type { Category, Post, PostCategoryLink, SiteSettings } from "./types";
 
 export const CMS_STATE_SLUG = "cms-state";
@@ -104,7 +105,7 @@ async function loadFromSql(): Promise<CmsDocument> {
     ),
     nextPostId: nextId(posts.map((p) => p.id)),
   };
-  return doc;
+  return mergePowerQuerySeed(doc);
 }
 
 function depthOf(id: number, cats: Category[]): number {
@@ -378,31 +379,34 @@ export async function loadPublicDocument(): Promise<CmsDocument> {
   }
   const client = anonClient();
   const fromPublicArticle = await readArticleContent(client, CMS_PUBLIC_SLUG);
-  if (fromPublicArticle) return fromPublicArticle;
+  if (fromPublicArticle) return mergePowerQuerySeed(fromPublicArticle);
   const fromStorage = await readStorageDocument(client, PUBLIC_PATH);
-  if (fromStorage) return fromStorage;
-  return emptyDocument();
+  if (fromStorage) return mergePowerQuerySeed(fromStorage);
+  return mergePowerQuerySeed(emptyDocument());
 }
 
 export async function loadAdminDocument(
   token: string,
 ): Promise<{ doc: CmsDocument; bootstrapped: boolean }> {
   if (!usesRemoteCms()) {
-    return { doc: await loadFromSql(), bootstrapped: false };
+    return { doc: mergePowerQuerySeed(await loadFromSql()), bootstrapped: false };
   }
   const client = authedClient(token);
   const fromState = await readArticleContent(client, CMS_STATE_SLUG);
-  if (fromState) return { doc: fromState, bootstrapped: false };
+  if (fromState) return { doc: mergePowerQuerySeed(fromState), bootstrapped: false };
   const fromStorage = await readStorageDocument(client, STATE_PATH);
-  if (fromStorage) return { doc: fromStorage, bootstrapped: false };
+  if (fromStorage) return { doc: mergePowerQuerySeed(fromStorage), bootstrapped: false };
   const legacy = await importLegacy(client);
-  if (legacy) return { doc: legacy, bootstrapped: true };
+  if (legacy) return { doc: mergePowerQuerySeed(legacy), bootstrapped: true };
   const published = await loadPublicDocument();
   const empty = emptyDocument();
   const hasCustom =
     published.posts.length > 0 ||
     published.categories.length !== empty.categories.length;
-  return { doc: hasCustom ? published : empty, bootstrapped: true };
+  return {
+    doc: mergePowerQuerySeed(hasCustom ? published : empty),
+    bootstrapped: true,
+  };
 }
 
 export async function saveDocument(doc: CmsDocument, token?: string): Promise<void> {
@@ -444,6 +448,6 @@ export async function loadDocumentForRead(): Promise<CmsDocument> {
   try {
     return await loadPublicDocument();
   } catch {
-    return emptyDocument();
+    return mergePowerQuerySeed(emptyDocument());
   }
 }

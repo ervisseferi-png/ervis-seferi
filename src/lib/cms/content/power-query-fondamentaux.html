@@ -1,0 +1,110 @@
+<p>Cette fiche est la première d’un parcours pour débutant. Objectif : ouvrir Excel, lancer Power Query, et comprendre <strong>ce que l’outil change</strong> avant de cliquer. Les manipulations se font dans Excel (onglet <strong>Données</strong>). Elles existent aussi dans Power BI Desktop ; seules quelques libellés diffèrent.</p>
+
+<figure>
+  <img src="/kb/power-query/img-avant-apres.jpg" alt="À gauche des données chaotiques, à droite une grille propre" />
+  <figcaption>Le réflexe Excel, c’est de corriger à la main. Power Query, c’est de décrire la correction une fois, puis de la rejouer.</figcaption>
+</figure>
+
+<h2>Pourquoi cette fiche</h2>
+<p>En comptabilité, la donnée arrive rarement propre : dates mélangées, montants stockés en texte, libellés tantôt en majuscules tantôt en minuscules, doublons, comptes absents du plan. Le réflexe habituel consiste à corriger le fichier, tous les mois, sans trace.</p>
+<p>Power Query change la nature du travail. Chaque correction devient une <strong>étape appliquée</strong>, nommée, ordonnée et rejouable. Le mois suivant, on remplace le fichier source et on actualise. C’est une piste d’audit intégrée : on voit ce qui a été fait à la donnée, et on revient en arrière étape par étape.</p>
+<blockquote>On ne corrige jamais le fichier source. Le fichier reste tel qu’il a été reçu. La correction vit dans les étapes.</blockquote>
+
+<h2>Ce que vous saurez faire à la fin de la série</h2>
+<ol>
+  <li>Importer un grand livre brut dans Excel, sans toucher au CSV.</li>
+  <li>Fiabiliser les types (montants français, comptes en texte, dates).</li>
+  <li>Normaliser les libellés, supprimer un doublon, signaler une pièce déséquilibrée.</li>
+  <li>Confronter les comptes utilisés à un plan comptable de référence.</li>
+</ol>
+<p>Les fichiers d’exercice sont sur ce site. Téléchargez-les maintenant et gardez-les dans un dossier dédié, par exemple <code>kb/conseil-sur-mesure/phase1-fiche1-power-query/</code>.</p>
+<p class="pq-files">
+  <a class="pq-file" href="/kb/power-query/grand_livre_2026_brut.csv" download>Télécharger grand_livre_2026_brut.csv</a>
+  <a class="pq-file" href="/kb/power-query/plan_comptable.csv" download>Télécharger plan_comptable.csv</a>
+</p>
+<p>29 écritures volontaires « sales » dans le grand livre, 15 comptes dans le plan. Tous les totaux de la série ont été calculés sur ces fichiers, pas estimés.</p>
+
+<h2>Excel ou Power BI : même outil, deux habitudes</h2>
+<p>Power Query est intégré à Excel <em>et</em> à Power BI. Cette série suit le chemin Excel, celui de la vidéo ci-dessous.</p>
+<ul>
+  <li>Dans Excel : onglet <strong>Données</strong>, puis <strong>Obtenir des données</strong> ou <strong>Lancer l’éditeur Power Query</strong>.</li>
+  <li>Tant que l’éditeur est ouvert, <strong>le classeur Excel est verrouillé</strong>. On ne revient au tableur qu’après <strong>Fermer et charger</strong>. Ce n’est pas le cas dans Power BI, où les deux fenêtres peuvent cohabiter.</li>
+  <li>Enregistrer le classeur enregistre aussi les requêtes. Fermer l’éditeur ne ferme pas Excel ; l’inverse, si.</li>
+  <li>Au début, ouvrez l’éditeur plutôt que les raccourcis « à partir d’un fichier ». Une fois l’outil compris, les raccourcis iront plus vite.</li>
+</ul>
+<p>Power Query <strong>lit</strong> la source, il ne l’écrit pas. Supprimer une colonne dans l’éditeur ne la supprime pas dans le CSV.</p>
+
+<figure>
+  <img src="/kb/power-query/img-etapes.jpg" alt="Chaîne d’étapes lumineuses, comme une piste d’audit" />
+  <figcaption>Les étapes appliquées se lisent comme une frise. La dernière est celle qui sera chargée. On peut remonter pour voir l’état précédent, sans casser la source.</figcaption>
+</figure>
+
+<h2>Le vocabulaire, avant de cliquer</h2>
+<table>
+  <thead>
+    <tr><th>Terme</th><th>Ce que c’est</th><th>Où vous le voyez</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Requête</td><td>Une suite de transformations appliquée à une source. Une requête par table.</td><td>Volet Requêtes, à gauche</td></tr>
+    <tr><td>Étape appliquée</td><td>Une transformation, nommée et ordonnée. C’est votre piste d’audit.</td><td>Volet de droite</td></tr>
+    <tr><td>Type de données</td><td>Texte, Nombre décimal, Date, Nombre entier. Il conditionne tous les calculs.</td><td>Icône à gauche du nom de colonne</td></tr>
+    <tr><td>Paramètres régionaux</td><td>Convention de lecture des nombres et des dates. En français : espace = milliers, virgule = décimale.</td><td>Type de données → Utiliser les paramètres régionaux</td></tr>
+    <tr><td>Colonne personnalisée</td><td>Une colonne calculée en langage M. Inutile de le connaître par cœur : l’interface l’écrit pour vous.</td><td>Onglet Ajouter une colonne</td></tr>
+    <tr><td>Fusionner / Ajouter</td><td>Fusionner = jointure latérale (comme RECHERCHEV). Ajouter = empilement de lignes.</td><td>Onglet Accueil</td></tr>
+    <tr><td>Requête de contrôle</td><td>Une copie qui sert à vérifier un total, sans polluer la requête principale.</td><td>Clic droit → Dupliquer, puis chargement en connexion seule</td></tr>
+  </tbody>
+</table>
+
+<h2>Se repérer dans l’éditeur</h2>
+<ol>
+  <li>Ouvrir <strong>Excel</strong>.</li>
+  <li>Onglet <strong>Données</strong> → <strong>Obtenir des données</strong> → <strong>À partir d’un fichier</strong> → <strong>À partir d’un fichier Texte/CSV</strong>.</li>
+  <li>Choisir le fichier. La fenêtre d’aperçu propose <strong>Charger</strong> et <strong>Transformer les données</strong>.</li>
+</ol>
+<blockquote>Toujours cliquer <strong>Transformer les données</strong>. Charger envoie la donnée brute dans Excel, défauts compris.</blockquote>
+<p>Quatre zones suffisent :</p>
+<div class="pq-editor" aria-label="Carte de l’éditeur Power Query">
+  <div class="pq-editor-ribbon">Accueil · Transformer · Ajouter une colonne · Affichage</div>
+  <div class="pq-editor-grid">
+    <div>
+      <strong>Requêtes</strong>
+      <span>La liste de vos tables, à gauche.</span>
+    </div>
+    <div>
+      <strong>Aperçu</strong>
+      <span>Les données, au centre. On sélectionne d’abord, on clique ensuite.</span>
+    </div>
+    <div>
+      <strong>Étapes appliquées</strong>
+      <span>À droite. Chaque ligne se renomme (clic droit) et se supprime (la croix).</span>
+    </div>
+  </div>
+</div>
+<p>Activez tout de suite les indicateurs de qualité : onglet <strong>Affichage</strong>, cocher <strong>Qualité de colonne</strong>, <strong>Distribution de colonne</strong> et <strong>Profil de colonne</strong>. Une barre apparaît sous chaque en-tête : Valide, Erreur, Vide. C’est le tableau de bord du nettoyage.</p>
+<blockquote>Par défaut, le profil ne porte que sur les 1 000 premières lignes. En bas de la fenêtre, basculez sur <strong>Profilage de colonne basé sur l’ensemble du jeu de données</strong>.</blockquote>
+<p>Deux réflexes de débutant, tout de suite :</p>
+<ul>
+  <li>Placez-vous toujours sur <strong>la dernière étape</strong> avant d’en ajouter une. Insérer au milieu casse la suite.</li>
+  <li>Si vous vous trompez, supprimez l’étape et recommencez. Power Query est fait pour ça.</li>
+</ul>
+
+<h2>Vidéo : les bases, dans Excel</h2>
+<p>Cette vidéo (Morpheus Formation) complète la fiche. Elle montre l’éditeur dans Excel, le verrouillage du classeur, les étapes appliquées comme une frise, et pourquoi on ne retouche jamais le tableau chargé.</p>
+<div class="pq-video">
+  <iframe src="https://www.youtube-nocookie.com/embed/4rCgZX9jEnA" title="Formation Power Query – les bases à savoir" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+<p>À retenir de la vidéo, en plus de la fiche :</p>
+<ul>
+  <li>Power Query ne demande pas de code pour 90 % du travail quotidien.</li>
+  <li>Une fois les requêtes posées, <strong>Données → Actualiser tout</strong> rejoue tout le filet.</li>
+  <li>Ne modifiez pas le tableau Excel produit par « Fermer et charger » : l’actualisation l’écrase.</li>
+  <li>Renommez vos requêtes : ce nom devient le nom de la feuille et du tableau.</li>
+</ul>
+
+<h2>Trois habitudes dès la première requête</h2>
+<ol>
+  <li>Renommer chaque étape par <em>ce qu’elle fait</em> : « Doublon AC-2026-019 supprimé » vaut mieux que « Doublons supprimés ».</li>
+  <li>Ne jamais charger dans le classeur une requête de contrôle : <strong>Fermer et charger dans…</strong> → <strong>Créer uniquement une connexion</strong>.</li>
+  <li>Poser les types en premier, avec les paramètres régionaux français, avant toute autre transformation.</li>
+</ol>
+<p class="pq-next">Suite : <a href="/blog/power-query-grand-livre">nettoyer le grand livre, étape par étape</a>. On y retrouve les huit défauts du fichier, les totaux exacts, et les trois exemples concrets.</p>

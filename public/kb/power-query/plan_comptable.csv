@@ -1,0 +1,16 @@
+Compte,Libelle,Classe
+401000,Fournisseurs,4
+411000,Clients,4
+512000,Banque,5
+601000,Achats matieres premieres,6
+606100,Fournitures non stockables,6
+613000,Locations,6
+621000,Personnel exterieur,6
+641000,Remunerations du personnel,6
+645000,Charges de securite sociale,6
+661000,Charges d'interets,6
+681000,Dotations aux amortissements,6
+701000,Ventes de produits finis,7
+706000,Prestations de services,7
+708000,Produits des activites annexes,7
+761000,Produits financiers,7

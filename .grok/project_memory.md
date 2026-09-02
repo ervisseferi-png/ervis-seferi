@@ -13,3 +13,4 @@
 - Header profile photo (LinkedIn-style circle) editable from Admin → Site & contacts; initials fallback [2026-09-02]
 - Categories: up to 3 levels (parent → child → grandchild); posts attach at any level; homepage accordion dropdown per level [2026-09-02]
 - Production CMS persistence: Supabase `articles` rows cms-state/cms-public + `images` storage JSON; PGLite only in sandbox preview; never on Vercel [2026-09-02]
+- Power Query beginner series (Excel) seeded into IA & Automatisation → Power BI: 3 published posts, CSV downloads and images under /kb/power-query/ [2026-09-02]

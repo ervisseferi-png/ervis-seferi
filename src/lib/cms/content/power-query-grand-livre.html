@@ -1,0 +1,144 @@
+<p>Deuxième fiche de la série. On travaille dans <strong>Excel</strong>, éditeur Power Query, sur les deux fichiers de la leçon. Si ce n’est pas déjà fait, ouvrez d’abord <a href="/blog/power-query-fondamentaux">les fondamentaux</a>.</p>
+<p class="pq-files">
+  <a class="pq-file" href="/kb/power-query/grand_livre_2026_brut.csv" download>grand_livre_2026_brut.csv</a>
+  <a class="pq-file" href="/kb/power-query/plan_comptable.csv" download>plan_comptable.csv</a>
+</p>
+
+<figure>
+  <img src="/kb/power-query/cover-grand-livre.jpg" alt="Grand livre qui se transforme en colonnes propres" />
+  <figcaption>Le fichier source ne se touche pas. Tout le nettoyage est une suite d’étapes rejouables.</figcaption>
+</figure>
+
+<h2>Les huit défauts à retrouver</h2>
+<p>Le grand livre contient volontairement huit catégories de défauts. Vous devez les retrouver, pas les croire sur parole :</p>
+<ol>
+  <li><strong>Montants en texte</strong> : Débit et Crédit sont écrits 12 500,00 (espace de milliers, virgule décimale).</li>
+  <li><strong>Formats de date mélangés</strong> : 27 lignes en 15/01/2026 et 2 lignes en 2026-01-18 (pièce AC-2026-011).</li>
+  <li><strong>Casse incohérente</strong> : vente client alpha, ACHAT MATIERES PREMIERES, VENTE CLIENT gamma…</li>
+  <li><strong>Espaces doubles</strong> dans « Reglement client&nbsp;&nbsp;ALPHA » et « loyer&nbsp;&nbsp;avril ».</li>
+  <li><strong>Doublon exact</strong> : AC-2026-019, compte 606100, 1 450,00 au débit, deux fois.</li>
+  <li><strong>Pièce déséquilibrée</strong> : VE-2026-007, 4 400,00 au débit et 4 000,00 au crédit.</li>
+  <li><strong>Ligne sans montant</strong> : BQ-2026-014, ni débit ni crédit.</li>
+  <li><strong>Comptes absents du plan</strong> : 627000 et 281000.</li>
+</ol>
+<p>État initial, fichier brut, 29 lignes : total Débit <strong>107 735,50</strong> ; total Crédit <strong>105 885,50</strong> ; écart <strong>1 850,00</strong>. Cet écart se décompose en 1 450,00 (le doublon) et 400,00 (la pièce déséquilibrée).</p>
+
+<h2>Exemple 1 — importer et fiabiliser les types</h2>
+<h3>Énoncé</h3>
+<p>Le service comptable vous transmet un export CSV du grand livre 2026. Chargez-le dans Excel de façon à calculer des totaux justes, <strong>sans toucher au fichier reçu</strong>.</p>
+<h3>Solution, dans Excel</h3>
+<ol>
+  <li>Excel → <strong>Données</strong> → <strong>Obtenir des données</strong> → <strong>À partir d’un fichier</strong> → <strong>À partir d’un fichier Texte/CSV</strong>.</li>
+  <li>Sélectionner <code>grand_livre_2026_brut.csv</code>.</li>
+  <li>Dans l’aperçu, vérifier : origine <strong>65001: Unicode (UTF-8)</strong> ; délimiteur <strong>Virgule</strong> ; détection des types → <strong>Ne pas détecter les types de données</strong>. On posera les types nous-mêmes, en français.</li>
+  <li>Cliquer <strong>Transformer les données</strong>. La requête s’appelle souvent <code>grand_livre_2026_brut</code>, avec les étapes Source et En-têtes promus. Si les en-têtes manquent : <strong>Accueil</strong> → <strong>Utiliser la première ligne pour les en-têtes</strong>.</li>
+  <li>Renommer la requête <strong>GrandLivre</strong> (volet de droite, champ Nom).</li>
+  <li>Onglet <strong>Affichage</strong> : cocher Qualité, Distribution et Profil de colonne, puis profiler <strong>l’ensemble du jeu de données</strong>.</li>
+  <li>Colonne <strong>Debit</strong> : <strong>Accueil</strong> → Type de données → <strong>Utiliser les paramètres régionaux…</strong> → Nombre décimal, <strong>Français (France)</strong>. Les 12 500,00 s’alignent à droite ; les vides deviennent null.</li>
+  <li>Recommencer pour <strong>Credit</strong>.</li>
+  <li>Colonnes <strong>Compte</strong>, <strong>Journal</strong>, <strong>Piece</strong>, <strong>Libelle</strong> en <strong>Texte</strong>. Un compte n’est pas un nombre : 401000 ne s’additionne pas, et le texte protège les zéros de tête.</li>
+  <li>Laisser <strong>Date</strong> en Texte pour l’instant : deux formats cohabitent, une conversion naïve produirait des erreurs (exemple 2).</li>
+  <li>Clic droit sur GrandLivre → <strong>Dupliquer</strong>, renommer <strong>Controle_Totaux</strong>.</li>
+  <li>Dans cette copie : colonne Debit → <strong>Transformer</strong> → <strong>Statistiques</strong> → <strong>Somme</strong>. Lire, puis supprimer l’étape. Idem Crédit. Puis <strong>Compter les lignes</strong>, lire, supprimer l’étape.</li>
+  <li>Clic droit sur Controle_Totaux → <strong>Fermer et charger dans…</strong> → <strong>Créer uniquement une connexion</strong>. Cette requête ne doit pas polluer le classeur.</li>
+  <li><strong>Accueil</strong> → <strong>Fermer et charger</strong> pour GrandLivre (tableau Excel).</li>
+</ol>
+<h3>Résultat attendu</h3>
+<table>
+  <thead><tr><th>Mesure</th><th>Valeur</th></tr></thead>
+  <tbody>
+    <tr><td>Nombre de lignes</td><td><strong>29</strong></td></tr>
+    <tr><td>Total Débit</td><td><strong>107 735,50</strong></td></tr>
+    <tr><td>Total Crédit</td><td><strong>105 885,50</strong></td></tr>
+    <tr><td>Écart Débit − Crédit</td><td><strong>1 850,00</strong></td></tr>
+  </tbody>
+</table>
+<p>Debit et Credit portent l’icône 1,2 (nombre décimal). Compte porte ABC. Debit a 1 vide (BQ-2026-014), Credit en a 12.</p>
+<p>Si le total s’affiche 107735.5, ce n’est qu’un format. Si vous obtenez 1 077 355 ou une colonne pleine d’<strong>Error</strong>, l’étape 7 a été faite sans paramètres régionaux : supprimez <em>Type modifié</em> et recommencez.</p>
+<p>Rappel Excel : tant que l’éditeur est ouvert, le classeur est inutilisable. On charge, on lit les totaux, on revient dans l’éditeur si besoin.</p>
+
+<h2>Exemple 2 — dates, libellés, doublon</h2>
+<h3>Énoncé</h3>
+<p>Le grand livre doit devenir exploitable : une vraie colonne Date, des libellés homogènes, plus de ligne saisie deux fois. Chiffrer l’effet du doublon sur le total débit.</p>
+<h3>Dates mélangées</h3>
+<ol>
+  <li>Requête <strong>GrandLivre</strong>.</li>
+  <li><strong>Ajouter une colonne</strong> → <strong>Colonne personnalisée</strong>, nom <strong>DateReelle</strong>, formule :</li>
+</ol>
+<pre><code>if Text.Contains([Date], "/") then Date.FromText([Date], [Format="dd/MM/yyyy", Culture="fr-FR"]) else Date.FromText([Date], [Format="yyyy-MM-dd", Culture="fr-FR"])</code></pre>
+<p>27 lignes sont au format français, 2 lignes (AC-2026-011) au format ISO. Une seule convention laisserait des Error sur l’un des deux groupes.</p>
+<ol start="3">
+  <li>Type de DateReelle → <strong>Date</strong>. Qualité : 100 % Valide, 0 % Erreur.</li>
+  <li>Supprimer l’ancienne colonne Date, renommer DateReelle en Date, la déplacer <strong>Vers le début</strong>.</li>
+</ol>
+<h3>Libellés</h3>
+<ol>
+  <li>Colonne Libelle → <strong>Transformer</strong> → <strong>Format</strong> → <strong>Supprimer les espaces</strong> (début et fin).</li>
+  <li>Les doubles espaces internes restent. <strong>Accueil</strong> → <strong>Remplacer les valeurs</strong> : deux espaces → un espace. Renommer l’étape <strong>Espaces doubles réduits</strong>.</li>
+  <li>Libelle → <strong>Format</strong> → <strong>Mettre en majuscule chaque mot</strong>.</li>
+</ol>
+<h3>Doublon</h3>
+<ol>
+  <li>Dupliquer GrandLivre → <strong>Controle_Doublons</strong>.</li>
+  <li><strong>Regrouper par</strong> (Avancé) : Piece, Compte, Libelle, Debit. Nouvelle colonne NbLignes = Compter les lignes.</li>
+  <li>Filtrer NbLignes > 1. Une seule ligne doit rester : le doublon.</li>
+  <li>Charger Controle_Doublons en <strong>connexion seule</strong>.</li>
+  <li>Sur GrandLivre : cliquer dans une cellule (aucune colonne sélectionnée) → <strong>Accueil</strong> → <strong>Supprimer les lignes</strong> → <strong>Supprimer les doublons</strong>. Renommer l’étape <strong>Doublon AC-2026-019 supprimé</strong>.</li>
+</ol>
+<blockquote>Si une colonne est sélectionnée, la suppression ne compare que cette colonne. Désélectionnez d’abord.</blockquote>
+<h3>Résultat attendu</h3>
+<table>
+  <thead><tr><th>Mesure</th><th>Avant</th><th>Après</th></tr></thead>
+  <tbody>
+    <tr><td>Lignes</td><td>29</td><td><strong>28</strong></td></tr>
+    <tr><td>Total Débit</td><td>107 735,50</td><td><strong>106 285,50</strong></td></tr>
+    <tr><td>Total Crédit</td><td>105 885,50</td><td><strong>105 885,50</strong></td></tr>
+    <tr><td>Écart</td><td>1 850,00</td><td><strong>400,00</strong></td></tr>
+  </tbody>
+</table>
+<p>Date va du 15/01/2026 au 30/04/2026, sans erreur. Libellés homogènes : Vente Client Alpha, Achat Matieres Premieres, Reglement Client Alpha… Les accents absents du fichier source ne sont pas inventés : on corrige la casse et les espaces, pas l’orthographe d’origine.</p>
+<p>L’écart résiduel de <strong>400,00</strong> n’est pas un défaut de nettoyage : c’est VE-2026-007, réellement déséquilibrée. <strong>Une anomalie comptable se signale, elle ne se corrige pas en silence</strong> dans l’outil de préparation.</p>
+
+<figure>
+  <img src="/kb/power-query/img-fusion.jpg" alt="Deux tables qui se rejoignent" />
+  <figcaption>Exemple 3 : on ne supprime pas les comptes inconnus du grand livre. On les isole dans une requête de contrôle.</figcaption>
+</figure>
+
+<h2>Exemple 3 — confronter au plan comptable</h2>
+<h3>Énoncé</h3>
+<p>Vérifier que tous les comptes mouvementés existent dans le plan, et produire la liste des écritures à compte inconnu.</p>
+<h3>Solution</h3>
+<ol>
+  <li><strong>Accueil</strong> → <strong>Nouvelle source</strong> → Texte/CSV → <code>plan_comptable.csv</code>. UTF-8, virgule, ne pas détecter les types. Nommer la requête <strong>PlanComptable</strong>.</li>
+  <li>Compte en <strong>Texte</strong> des deux côtés. Sinon la fusion échoue silencieusement (que des null).</li>
+  <li>Renommer Libelle de PlanComptable en <strong>LibellePlan</strong>, pour éviter Libelle et Libelle.1.</li>
+  <li>GrandLivre → <strong>Fusionner des requêtes</strong> (pas « comme nouvelles »). Clé : Compte des deux tables. Jointure <strong>externe gauche</strong>.</li>
+  <li>Déplier la colonne Table : cocher uniquement LibellePlan et Classe, sans préfixe.</li>
+  <li>Filtrer LibellePlan = (null) : ce sont les comptes inconnus. Lire, puis <strong>supprimer ce filtre</strong> sur GrandLivre.</li>
+  <li>Dupliquer GrandLivre → <strong>ComptesHorsPlan</strong>, et y refaire uniquement le filtre null. Connexion seule, ou une petite feuille dédiée.</li>
+</ol>
+<h3>Résultat attendu</h3>
+<p>ComptesHorsPlan : <strong>2 lignes</strong>.</p>
+<table>
+  <thead><tr><th>Pièce</th><th>Compte</th><th>Libellé</th><th>Débit</th><th>Crédit</th></tr></thead>
+  <tbody>
+    <tr><td>AC-2026-026</td><td><strong>627000</strong></td><td>Frais Bancaires</td><td>185,00</td><td></td></tr>
+    <tr><td>OD-2026-009</td><td><strong>281000</strong></td><td>Dotation Amortissements T1</td><td></td><td>2 100,00</td></tr>
+  </tbody>
+</table>
+<p>GrandLivre conserve ses 28 lignes, enrichies de LibellePlan et Classe, avec null sur ces deux comptes. Ce n’est pas au préparateur d’inventer les comptes : ComptesHorsPlan est le support de la remontée.</p>
+
+<h2>Les erreurs qui coûtent une soirée</h2>
+<table>
+  <thead><tr><th>Symptôme</th><th>Cause</th><th>Correction</th></tr></thead>
+  <tbody>
+    <tr><td>Montants en Error</td><td>Nombre décimal sans paramètres régionaux</td><td>Refaire avec Français (France)</td></tr>
+    <tr><td>Totaux × 100</td><td>La virgule lue comme milliers</td><td>Idem</td></tr>
+    <tr><td>Fusion = que des null</td><td>Texte d’un côté, nombre de l’autre</td><td>Texte des deux côtés avant de fusionner</td></tr>
+    <tr><td>Doublons : rien ou trop</td><td>Une colonne était sélectionnée</td><td>Cliquer une cellule, relancer</td></tr>
+    <tr><td>Nettoyage perdu à l’actualisation</td><td>Fichier source corrigé à la main</td><td>Tout se passe dans les étapes</td></tr>
+    <tr><td>100 % valide à tort</td><td>Profil sur 1 000 lignes seulement</td><td>Profiler tout le jeu</td></tr>
+    <tr><td>Caractères illisibles</td><td>Mauvaise origine de fichier</td><td>UTF-8 (65001)</td></tr>
+  </tbody>
+</table>
+<p class="pq-next">Suite : <a href="/blog/power-query-exercices">trois exercices, dont la preuve par l’actualisation</a>. C’est là que le travail cesse d’être « fait une fois » et devient « décrit ».</p>
