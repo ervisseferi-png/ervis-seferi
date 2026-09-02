@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy-950: #060d1a;
+  --navy-900: #0a1628;
+  --gold: #d4af57;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: linear-gradient(160deg, #060d1a 0%, #0a1628 40%, #0f1f3a 100%);
+  min-height: 100vh;
+  color: #e8edf5;
+}
+
+/* Elegant card glass effect */
+.glass-card {
+  background: rgba(15, 31, 58, 0.55);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 87, 0.12);
+}
+
+.prose-custom h2 {
+  @apply text-2xl font-serif text-gold-400 mt-10 mb-4;
+}
+.prose-custom h3 {
+  @apply text-xl font-serif text-gold-400/90 mt-8 mb-3;
+}
+.prose-custom p {
+  @apply text-slate-300 leading-relaxed mb-5;
+}
+.prose-custom a {
+  @apply text-gold-400 underline underline-offset-2 hover:text-gold-500;
+}
+.prose-custom ul {
+  @apply list-disc list-inside mb-5 space-y-2 text-slate-300;
+}
+.prose-custom img {
+  @apply rounded-xl my-6 max-w-full;
+}
