@@ -1,7 +1,7 @@
 import { pendingMigrations } from "../../scripts/migration-plan.mjs";
 
 /** Which database backend is active. */
-export type DbSource = "neon" | "pglite";
+export type DbSource = "neon" | "pglite" | "none";
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
@@ -10,13 +10,34 @@ const rawDatabaseUrl =
 const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
+function runningOnServerless(): boolean {
+  if (typeof process === "undefined") return false;
+  const env = process.env;
+  return Boolean(
+    env.VERCEL ||
+      env.AWS_LAMBDA_FUNCTION_NAME ||
+      env.LAMBDA_TASK_ROOT ||
+      env.NETLIFY,
+  );
+}
+
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
  * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
  * the app has a working database even with nothing configured — the live preview
- * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
+ * included. On Vercel/serverless without `DATABASE_URL`, PGLite cannot open its
+ * wasm data file (`/var/task/_libs/pglite.data`), so the backend is `"none"`
+ * and the CMS persists to the existing Supabase project instead.
  */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
+export const dbSource: DbSource = databaseUrl
+  ? "neon"
+  : runningOnServerless()
+    ? "none"
+    : "pglite";
+
+export function canUseSql(): boolean {
+  return dbSource !== "none";
+}
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
@@ -176,7 +197,13 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  if (dbSource === "neon") return createNeonSql();
+  if (dbSource === "none") {
+    throw new Error(
+      "Postgres n’est pas configuré sur cet hébergement. Le CMS utilise Supabase.",
+    );
+  }
+  return createPgliteSql();
 }
 
 /**
@@ -216,6 +243,7 @@ export async function getPglite(): Promise<import("@electric-sql/pglite").PGlite
  * - **PGLite** (preview / no `DATABASE_URL`): open the in-memory DB and apply
  *   `migrations/*.sql`. Idempotent — concurrent callers share one promise.
  * - **Neon**: no-op (pool is created lazily on first query).
+ * - **none** (Vercel without DATABASE_URL): no-op — CMS uses Supabase.
  *
  * Vite `configureServer` awaits this at dev startup; production imports of this
  * module kick it off immediately (see bottom of file).

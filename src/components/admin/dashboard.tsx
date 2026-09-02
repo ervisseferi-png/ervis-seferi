@@ -54,7 +54,16 @@ export function AdminDashboard() {
         await reload();
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Chargement impossible.");
+          const raw = e instanceof Error ? e.message : "Chargement impossible.";
+          const message =
+            raw.includes("pglite") || raw.includes("ENOENT")
+              ? "Le contenu n’a pas pu être chargé. Réessayez dans un instant."
+              : raw === "FORBIDDEN"
+                ? "Ce compte n’est pas autorisé à administrer le site."
+                : raw === "Unauthorized"
+                  ? "Session expirée. Reconnectez-vous."
+                  : raw;
+          setError(message);
         }
       } finally {
         if (!cancelled) setLoading(false);

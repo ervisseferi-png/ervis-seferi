@@ -9,6 +9,11 @@ export class UnauthorizedError extends Error {
   }
 }
 
+export type AdminAuthContext = {
+  userId: string;
+  accessToken: string;
+};
+
 export const supabaseAuthMiddleware = createMiddleware({ type: "function" })
   .client(async ({ next }) => {
     const { getAccessToken } = await import("./client");
@@ -26,5 +31,7 @@ export const supabaseAuthMiddleware = createMiddleware({ type: "function" })
     });
     const { data, error } = await supabase.auth.getUser(token);
     if (error || !data.user) throw new UnauthorizedError();
-    return next({ context: { userId: data.user.id } });
+    return next({
+      context: { userId: data.user.id, accessToken: token } satisfies AdminAuthContext,
+    });
   });
