@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { getHomeData } from "@/lib/cms/queries";
 import { CategoryShowcase } from "@/components/category-showcase";
-import { DEFAULT_SITE } from "@/lib/cms/types";
+import { DEFAULT_SITE, defaultCategoryShowcase } from "@/lib/cms/types";
 import { roots } from "@/lib/cms/tree";
 
 export const Route = createFileRoute("/")({
@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
     try {
       return await getHomeData();
     } catch {
-      return { site: DEFAULT_SITE, categories: [], articleCount: 0 };
+      return { site: DEFAULT_SITE, categories: defaultCategoryShowcase(), articleCount: 0 };
     }
   },
   component: Home,

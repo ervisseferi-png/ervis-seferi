@@ -1,10 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getSql } from "@/lib/db";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { supabaseAuthMiddleware } from "@/lib/supabase/middleware";
 import { slugify, sanitizeStoredImage } from "@/lib/utils";
 import { canNestUnder, descendantIds, normalizeParentId, pathLabel } from "./tree";
 import {
+  DEFAULT_CATEGORIES,
   DEFAULT_SITE,
+  categoriesOrDefault,
+  defaultCategoryShowcase,
   type Category,
   type CategoryWithPosts,
   type HomeData,
@@ -139,8 +142,8 @@ async function requireOwner(userId: string) {
     "select user_id from site_owners",
   );
   if (owners.length === 0) {
-    const err = new Error("SETUP_REQUIRED");
-    throw err;
+    await sql.query("insert into site_owners (user_id) values ($1)", [userId]);
+    return;
   }
   if (!owners.some((o) => o.user_id === userId)) {
     throw new Error("FORBIDDEN");
@@ -166,9 +169,9 @@ export const getPublicSite = createServerFn({ method: "GET" }).handler(
     try {
       await promoteDueScheduled();
       const [site, categories] = await Promise.all([loadSite(), loadCategories()]);
-      return { site, categories };
+      return { site, categories: categoriesOrDefault(categories) };
     } catch {
-      return { site: DEFAULT_SITE, categories: [] as Category[] };
+      return { site: DEFAULT_SITE, categories: DEFAULT_CATEGORIES };
     }
   },
 );
@@ -188,7 +191,8 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(
       ]);
       const live = posts.map(asPost);
       const byId = new Map(live.map((p) => [p.id, p]));
-      const cats: CategoryWithPosts[] = categories.map((cat) => {
+      const source = categoriesOrDefault(categories);
+      const cats: CategoryWithPosts[] = source.map((cat) => {
         const assigned = links
           .filter((l) => l.category_id === cat.id && byId.has(l.post_id))
           .sort((a, b) => a.sort_order - b.sort_order || a.post_id - b.post_id)
@@ -196,14 +200,18 @@ export const getHomeData = createServerFn({ method: "GET" }).handler(
             const post = byId.get(l.post_id)!;
             return {
               ...post,
-              categories: labeledCategories(post.id, categories, links),
+              categories: labeledCategories(post.id, source, links),
             };
           });
         return { ...cat, posts: assigned };
       });
       return { site, categories: cats, articleCount: live.length };
     } catch {
-      return { site: DEFAULT_SITE, categories: [], articleCount: 0 };
+      return {
+        site: DEFAULT_SITE,
+        categories: defaultCategoryShowcase(),
+        articleCount: 0,
+      };
     }
   },
 );
@@ -250,7 +258,7 @@ export const getLivePost = createServerFn({ method: "GET" })
   });
 
 export const getAdminStatus = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const owners = await sql.query<{ user_id: string }>(
@@ -263,7 +271,7 @@ export const getAdminStatus = createServerFn({ method: "GET" })
   });
 
 export const claimAdmin = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const owners = await sql.query<{ user_id: string }>(
@@ -369,14 +377,14 @@ async function applyRememberWindow(
 
 /** Keep the current admin session alive for 15 days on this device. */
 export const persistRememberSession = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context }) => {
     const until = new Date(Date.now() + REMEMBER_SECONDS * 1000);
     return applyRememberWindow(context.userId, until);
   });
 
 export const refreshRememberSession = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context }) => {
     const sql = await getSql();
     const cookies = await sessionCookieParts();
@@ -387,7 +395,7 @@ export const refreshRememberSession = createServerFn({ method: "POST" })
   });
 
 export const getRememberStatus = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async () => {
     const sql = await getSql();
     const cookies = await sessionCookieParts();
@@ -399,7 +407,7 @@ export const getRememberStatus = createServerFn({ method: "GET" })
   });
 
 export const getAdminBundle = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context }) => {
     await requireOwner(context.userId);
     await promoteDueScheduled();
@@ -422,7 +430,7 @@ export const getAdminBundle = createServerFn({ method: "GET" })
 
 export const saveSiteSettings = createServerFn({ method: "POST" })
   .validator((data: SiteSettings) => data)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -481,7 +489,7 @@ export const saveCategory = createServerFn({ method: "POST" })
       parent_id?: number | null;
     }) => data,
   )
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -535,7 +543,7 @@ export const saveCategory = createServerFn({ method: "POST" })
 
 export const deleteCategory = createServerFn({ method: "POST" })
   .validator((id: number) => id)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data: id }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -552,7 +560,7 @@ export const deleteCategory = createServerFn({ method: "POST" })
 
 export const reorderCategories = createServerFn({ method: "POST" })
   .validator((data: { parentId: number | null; ids: number[] }) => data)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -568,7 +576,7 @@ export const reorderCategories = createServerFn({ method: "POST" })
 
 export const reorderPostsInCategory = createServerFn({ method: "POST" })
   .validator((data: { categoryId: number; postIds: number[] }) => data)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -583,7 +591,7 @@ export const reorderPostsInCategory = createServerFn({ method: "POST" })
 
 export const savePost = createServerFn({ method: "POST" })
   .validator((data: PostInput) => data)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -688,7 +696,7 @@ export const savePost = createServerFn({ method: "POST" })
 
 export const deletePost = createServerFn({ method: "POST" })
   .validator((id: number) => id)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data: id }) => {
     await requireOwner(context.userId);
     const sql = await getSql();
@@ -698,7 +706,7 @@ export const deletePost = createServerFn({ method: "POST" })
 
 export const getAdminPost = createServerFn({ method: "GET" })
   .validator((slug: string) => slug)
-  .middleware([authMiddleware])
+  .middleware([supabaseAuthMiddleware])
   .handler(async ({ context, data: slug }): Promise<PublicPost | null> => {
     await requireOwner(context.userId);
     const sql = await getSql();

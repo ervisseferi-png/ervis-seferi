@@ -132,3 +132,46 @@ export const DEFAULT_SITE: SiteSettings = {
     "Une sélection d'articles concrets pour mieux piloter comptabilité, trésorerie, analyse financière et transformation numérique.",
   updated_at: null,
 };
+
+export const DEFAULT_CATEGORIES: Category[] = [
+  {
+    id: 1,
+    name: "Comptabilité",
+    slug: "comptabilite",
+    description: "Lecture claire des chiffres",
+    sort_order: 0,
+    parent_id: null,
+  },
+  {
+    id: 2,
+    name: "Trésorerie",
+    slug: "tresorerie",
+    description: "Pilotage du cash au quotidien",
+    sort_order: 1,
+    parent_id: null,
+  },
+  {
+    id: 3,
+    name: "Analyse financière",
+    slug: "analyse-financiere",
+    description: "Décisions basées sur les données",
+    sort_order: 2,
+    parent_id: null,
+  },
+  {
+    id: 4,
+    name: "IA & Automatisation",
+    slug: "ia-automatisation",
+    description: "Gains de temps concrets",
+    sort_order: 3,
+    parent_id: null,
+  },
+];
+
+export function defaultCategoryShowcase(): CategoryWithPosts[] {
+  return DEFAULT_CATEGORIES.map((c) => ({ ...c, posts: [] as PublicPost[] }));
+}
+
+export function categoriesOrDefault(rows: Category[]): Category[] {
+  return rows.length > 0 ? rows : DEFAULT_CATEGORIES;
+}

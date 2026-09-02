@@ -1,11 +1,10 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
-import { RedirectToSignIn } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { Outlet, createFileRoute, Navigate } from "@tanstack/react-router";
+import { useAdminSession } from "@/lib/supabase/use-session";
 
 export const Route = createFileRoute("/admin")({ component: AdminLayout });
 
 function AdminLayout() {
-  const { user, isPending } = useCurrentUserState();
+  const { user, aal, isPending } = useAdminSession();
 
   if (isPending) {
     return (
@@ -15,7 +14,7 @@ function AdminLayout() {
     );
   }
 
-  if (!user) return <RedirectToSignIn />;
+  if (!user || aal !== "aal2") return <Navigate to="/login" />;
 
   return <Outlet />;
 }

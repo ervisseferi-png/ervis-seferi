@@ -8,9 +8,8 @@ import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
-import { RememberSessionKeeper } from "@/components/admin/remember-session";
 import { getPublicSite } from "@/lib/cms/queries";
-import { DEFAULT_SITE } from "@/lib/cms/types";
+import { DEFAULT_CATEGORIES, DEFAULT_SITE } from "@/lib/cms/types";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Ervis Seferi";
@@ -20,7 +19,7 @@ export const Route = createRootRoute({
     try {
       return await getPublicSite();
     } catch {
-      return { site: DEFAULT_SITE, categories: [] };
+      return { site: DEFAULT_SITE, categories: DEFAULT_CATEGORIES };
     }
   },
   head: () => ({
@@ -62,7 +61,6 @@ function RootDocument() {
       <body>
         <PreviewHostBridge />
         <AuthProvider>
-          <RememberSessionKeeper />
           <Header site={site} />
           <main className="min-h-[70vh]">
             <Outlet />

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useRouter } from "@tanstack/react-router";
-import { UserButton } from "@/lib/auth/gates";
 import { deletePost, getAdminBundle } from "@/lib/cms/queries";
+import { getBrowserClient } from "@/lib/supabase/client";
+import { useAdminSession } from "@/lib/supabase/use-session";
 import type { Category, Post, PostCategoryLink, SiteSettings } from "@/lib/cms/types";
 import { formatDate } from "@/lib/utils";
 import { ArticleEditor, EDITOR_KEY } from "./article-editor";
@@ -20,6 +21,7 @@ function statusLabel(post: Post) {
 
 export function AdminDashboard() {
   const router = useRouter();
+  const { user } = useAdminSession();
   const [tab, setTab] = useState<Tab>("articles");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,7 +97,23 @@ export function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <UserButton />
+          {user?.email ? (
+            <span className="max-w-[14rem] truncate text-sm text-slate-400">
+              {user.email}
+            </span>
+          ) : null}
+          <GhostButton
+            onClick={async () => {
+              try {
+                await getBrowserClient().auth.signOut();
+              } catch {
+                /* still leave */
+              }
+              window.location.href = "/login";
+            }}
+          >
+            Déconnexion
+          </GhostButton>
         </div>
       </div>
 
