@@ -4,6 +4,7 @@ import { deletePost, getAdminBundle } from "@/lib/cms/queries";
 import { getBrowserClient } from "@/lib/supabase/client";
 import { useAdminSession } from "@/lib/supabase/use-session";
 import type { Category, Post, PostCategoryLink, SiteSettings } from "@/lib/cms/types";
+import { flattenTree, pathLabel, toTree } from "@/lib/cms/tree";
 import { formatDate } from "@/lib/utils";
 import { ArticleEditor, EDITOR_KEY } from "./article-editor";
 import { CategoriesManager } from "./categories-manager";
@@ -90,6 +91,23 @@ export function AdminDashboard() {
     );
   }
 
+  const categoryIds = new Set(categories.map((category) => category.id));
+  const groups = flattenTree(toTree(categories)).map(({ node }) => ({
+    id: String(node.id),
+    name: pathLabel(node.id, categories, " / "),
+    posts: posts.filter((post) =>
+      links.some((link) => link.post_id === post.id && link.category_id === node.id),
+    ),
+  }));
+  groups.push({
+    id: "uncategorized",
+    name: "Sans catégorie",
+    posts: posts.filter(
+      (post) =>
+        !links.some((link) => link.post_id === post.id && categoryIds.has(link.category_id)),
+    ),
+  });
+
   const tabs: { id: Tab; label: string }[] = [
     { id: "articles", label: "Articles" },
     { id: "categories", label: "Catégories" },
@@ -107,9 +125,7 @@ export function AdminDashboard() {
         </div>
         <div className="flex items-center gap-3">
           {user?.email ? (
-            <span className="max-w-[14rem] truncate text-sm text-slate-400">
-              {user.email}
-            </span>
+            <span className="max-w-[14rem] truncate text-sm text-slate-400">{user.email}</span>
           ) : null}
           <GhostButton
             onClick={async () => {
@@ -178,64 +194,73 @@ export function AdminDashboard() {
             {posts.length === 0 ? (
               <p className="text-sm text-slate-500">Aucun article pour le moment.</p>
             ) : (
-              <div className="space-y-3">
-                {posts.map((post) => {
-                  const st = statusLabel(post);
-                  const cats = categories.filter((c) =>
-                    links.some((l) => l.post_id === post.id && l.category_id === c.id),
-                  );
-                  return (
-                    <div
-                      key={post.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-navy-800/40 px-5 py-4"
-                    >
-                      <div className="min-w-0">
-                        <div className="font-medium text-white">{post.title}</div>
-                        <div className="mt-0.5 text-xs text-slate-500">
-                          /{post.slug}
-                          {cats.length ? ` · ${cats.map((c) => c.name).join(", ")}` : ""}
-                          {` · ${formatDate(post.updated_at)} · `}
-                          <span className={st.className}>{st.text}</span>
-                          {post.status === "scheduled" && post.scheduled_at
-                            ? ` · ${formatDate(post.scheduled_at)}`
-                            : null}
-                        </div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {post.status === "published" ? (
-                          <Link
-                            to="/blog/$slug"
-                            params={{ slug: post.slug }}
-                            className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
+              <div className="space-y-6">
+                {groups
+                  .filter((group) => group.posts.length > 0)
+                  .map((group) => (
+                    <section key={group.id} aria-label={group.name} className="space-y-3">
+                      <h3 className="text-sm font-medium text-gold-400">
+                        {group.name} ({group.posts.length})
+                      </h3>
+                      {group.posts.map((post) => {
+                        const st = statusLabel(post);
+                        const cats = categories.filter((c) =>
+                          links.some((l) => l.post_id === post.id && l.category_id === c.id),
+                        );
+                        return (
+                          <div
+                            key={post.id}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-navy-800/40 px-5 py-4"
                           >
-                            Voir
-                          </Link>
-                        ) : null}
-                        <button
-                          type="button"
-                          onClick={() => setEditing(post)}
-                          className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
-                        >
-                          Modifier
-                        </button>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            if (!confirm("Supprimer cet article ?")) return;
-                            await deletePost({ data: post.id });
-                            if (editing !== "new" && editing?.id === post.id) {
-                              setEditing(null);
-                            }
-                            await reload();
-                          }}
-                          className="rounded-lg px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-300"
-                        >
-                          Supprimer
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                            <div className="min-w-0">
+                              <div className="font-medium text-white">{post.title}</div>
+                              <div className="mt-0.5 text-xs text-slate-500">
+                                /{post.slug}
+                                {cats.length ? ` · ${cats.map((c) => c.name).join(", ")}` : ""}
+                                {` · ${formatDate(post.updated_at)} · `}
+                                <span className={st.className}>{st.text}</span>
+                                {post.status === "scheduled" && post.scheduled_at
+                                  ? ` · ${formatDate(post.scheduled_at)}`
+                                  : null}
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {post.status === "published" ? (
+                                <Link
+                                  to="/blog/$slug"
+                                  params={{ slug: post.slug }}
+                                  className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
+                                >
+                                  Voir
+                                </Link>
+                              ) : null}
+                              <button
+                                type="button"
+                                onClick={() => setEditing(post)}
+                                className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
+                              >
+                                Modifier
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (!confirm("Supprimer cet article ?")) return;
+                                  await deletePost({ data: post.id });
+                                  if (editing !== "new" && editing?.id === post.id) {
+                                    setEditing(null);
+                                  }
+                                  await reload();
+                                }}
+                                className="rounded-lg px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-300"
+                              >
+                                Supprimer
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </section>
+                  ))}
               </div>
             )}
           </div>
@@ -275,8 +300,8 @@ export function SetupAdmin({ onReady }: { onReady: () => void }) {
     <div className="mx-auto max-w-lg px-6 py-20">
       <h1 className="font-serif text-3xl text-white">Initialiser l’administration</h1>
       <p className="mt-3 text-sm leading-relaxed text-slate-400">
-        Ce compte deviendra le seul administrateur du site. Cette étape n’est
-        possible qu’une seule fois.
+        Ce compte deviendra le seul administrateur du site. Cette étape n’est possible qu’une seule
+        fois.
       </p>
       {error ? <p className="mt-4 text-sm text-red-300">{error}</p> : null}
       <div className="mt-8 flex gap-3">

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { getHomeData } from "@/lib/cms/queries";
+import { getHomeData, listLivePosts } from "@/lib/cms/queries";
+import { PostPreviewCarousel } from "@/components/post-preview-carousel";
 import { CategoryShowcase } from "@/components/category-showcase";
 import { DEFAULT_SITE, defaultCategoryShowcase } from "@/lib/cms/types";
 import { roots } from "@/lib/cms/tree";
@@ -7,16 +8,28 @@ import { roots } from "@/lib/cms/tree";
 export const Route = createFileRoute("/")({
   loader: async () => {
     try {
-      return await getHomeData();
+      const [home, posts] = await Promise.all([getHomeData(), listLivePosts()]);
+      // Shuffle a copy once per load; keep the published content and its order intact.
+      const previews = [...posts];
+      for (let i = previews.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [previews[i], previews[j]] = [previews[j], previews[i]];
+      }
+      return { ...home, previews: previews.slice(0, 8) };
     } catch {
-      return { site: DEFAULT_SITE, categories: defaultCategoryShowcase(), articleCount: 0 };
+      return {
+        site: DEFAULT_SITE,
+        categories: defaultCategoryShowcase(),
+        articleCount: 0,
+        previews: [],
+      };
     }
   },
   component: Home,
 });
 
 function Home() {
-  const { site, categories, articleCount } = Route.useLoaderData();
+  const { site, categories, articleCount, previews } = Route.useLoaderData();
   const domainCount = roots(categories).length;
 
   return (
@@ -28,20 +41,20 @@ function Home() {
 
       <section className="relative mx-auto max-w-6xl px-5 pb-24 pt-16 sm:px-6">
         <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr] lg:items-start">
-          <div className="glass-card rounded-3xl p-8 shadow-2xl md:p-14">
+          <div className="glass-card rounded-3xl p-7 shadow-2xl md:p-10">
             <div className="inline-flex items-center rounded-full border border-gold-500/25 bg-gold-500/10 px-4 py-1.5 text-xs font-medium tracking-wider text-gold-400">
               {site.hero_badge}
             </div>
 
-            <h1 className="mt-8 font-serif text-5xl leading-[1.1] tracking-tight whitespace-pre-line text-white md:text-6xl lg:text-7xl">
+            <h1 className="mt-6 font-serif text-4xl leading-[1.1] tracking-tight whitespace-pre-line text-white md:text-5xl lg:text-6xl">
               {site.hero_title}
             </h1>
 
-            <p className="mt-8 max-w-lg text-base leading-relaxed text-slate-300 md:text-lg">
+            <p className="mt-6 max-w-lg text-base leading-relaxed text-slate-300 md:text-lg">
               {site.hero_tagline}
             </p>
 
-            <div className="mt-10 flex flex-wrap gap-4">
+            <div className="mt-7 flex flex-wrap gap-4">
               <Link
                 to="/blog"
                 className="inline-flex min-h-11 items-center rounded-full bg-gold-500 px-7 py-3 text-sm font-medium text-navy-950 transition hover:bg-gold-400"
@@ -62,18 +75,14 @@ function Home() {
               <h2 className="text-xs font-semibold uppercase tracking-widest text-gold-400">
                 {site.expertise_title}
               </h2>
-              <p className="mt-4 text-sm leading-relaxed text-slate-300">
-                {site.expertise_body}
-              </p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-300">{site.expertise_body}</p>
               <div className="mt-6 flex gap-3">
                 <div className="rounded-xl bg-navy-800/80 px-4 py-3 text-center">
                   <div className="text-lg font-medium text-white">{articleCount || "—"}</div>
                   <div className="text-[11px] text-slate-400">articles</div>
                 </div>
                 <div className="rounded-xl bg-navy-800/80 px-4 py-3 text-center">
-                  <div className="text-lg font-medium text-gold-400">
-                    {domainCount}
-                  </div>
+                  <div className="text-lg font-medium text-gold-400">{domainCount}</div>
                   <div className="text-[11px] text-slate-400">domaines clés</div>
                 </div>
               </div>
@@ -87,6 +96,8 @@ function Home() {
             </div>
           </div>
         </div>
+
+        <PostPreviewCarousel posts={previews} />
 
         <CategoryShowcase categories={categories} />
       </section>
