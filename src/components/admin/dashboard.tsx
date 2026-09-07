@@ -198,68 +198,73 @@ export function AdminDashboard() {
                 {groups
                   .filter((group) => group.posts.length > 0)
                   .map((group) => (
-                    <section key={group.id} aria-label={group.name} className="space-y-3">
-                      <h3 className="text-sm font-medium text-gold-400">
+                    <details
+                      key={group.id}
+                      className="rounded-xl border border-white/10 bg-navy-800/20"
+                    >
+                      <summary className="min-h-11 cursor-pointer rounded-xl px-5 py-4 text-sm font-medium text-gold-400 hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-gold-400">
                         {group.name} ({group.posts.length})
-                      </h3>
-                      {group.posts.map((post) => {
-                        const st = statusLabel(post);
-                        const cats = categories.filter((c) =>
-                          links.some((l) => l.post_id === post.id && l.category_id === c.id),
-                        );
-                        return (
-                          <div
-                            key={post.id}
-                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-navy-800/40 px-5 py-4"
-                          >
-                            <div className="min-w-0">
-                              <div className="font-medium text-white">{post.title}</div>
-                              <div className="mt-0.5 text-xs text-slate-500">
-                                /{post.slug}
-                                {cats.length ? ` · ${cats.map((c) => c.name).join(", ")}` : ""}
-                                {` · ${formatDate(post.updated_at)} · `}
-                                <span className={st.className}>{st.text}</span>
-                                {post.status === "scheduled" && post.scheduled_at
-                                  ? ` · ${formatDate(post.scheduled_at)}`
-                                  : null}
+                      </summary>
+                      <div className="space-y-3 px-3 pb-3">
+                        {group.posts.map((post) => {
+                          const st = statusLabel(post);
+                          const cats = categories.filter((c) =>
+                            links.some((l) => l.post_id === post.id && l.category_id === c.id),
+                          );
+                          return (
+                            <div
+                              key={post.id}
+                              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-navy-800/40 px-5 py-4"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-medium text-white">{post.title}</div>
+                                <div className="mt-0.5 text-xs text-slate-500">
+                                  /{post.slug}
+                                  {cats.length ? ` · ${cats.map((c) => c.name).join(", ")}` : ""}
+                                  {` · ${formatDate(post.updated_at)} · `}
+                                  <span className={st.className}>{st.text}</span>
+                                  {post.status === "scheduled" && post.scheduled_at
+                                    ? ` · ${formatDate(post.scheduled_at)}`
+                                    : null}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {post.status === "published" ? (
-                                <Link
-                                  to="/blog/$slug"
-                                  params={{ slug: post.slug }}
+                              <div className="flex flex-wrap gap-2">
+                                {post.status === "published" ? (
+                                  <Link
+                                    to="/blog/$slug"
+                                    params={{ slug: post.slug }}
+                                    className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
+                                  >
+                                    Voir
+                                  </Link>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  onClick={() => setEditing(post)}
                                   className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
                                 >
-                                  Voir
-                                </Link>
-                              ) : null}
-                              <button
-                                type="button"
-                                onClick={() => setEditing(post)}
-                                className="rounded-lg px-3 py-1.5 text-xs text-slate-400 hover:bg-white/5 hover:text-white"
-                              >
-                                Modifier
-                              </button>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  if (!confirm("Supprimer cet article ?")) return;
-                                  await deletePost({ data: post.id });
-                                  if (editing !== "new" && editing?.id === post.id) {
-                                    setEditing(null);
-                                  }
-                                  await reload();
-                                }}
-                                className="rounded-lg px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-300"
-                              >
-                                Supprimer
-                              </button>
+                                  Modifier
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!confirm("Supprimer cet article ?")) return;
+                                    await deletePost({ data: post.id });
+                                    if (editing !== "new" && editing?.id === post.id) {
+                                      setEditing(null);
+                                    }
+                                    await reload();
+                                  }}
+                                  className="rounded-lg px-3 py-1.5 text-xs text-red-400/80 hover:bg-red-500/10 hover:text-red-300"
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </section>
+                          );
+                        })}
+                      </div>
+                    </details>
                   ))}
               </div>
             )}
