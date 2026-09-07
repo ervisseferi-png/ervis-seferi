@@ -1,35 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { PostCard } from "@/components/post-card";
 import type { CategoryWithPosts } from "@/lib/cms/types";
 import { childrenOf, roots, toTree, type TreeNode } from "@/lib/cms/tree";
 import { cn } from "@/lib/utils";
 
-export function CategoryShowcase({
-  categories,
-}: {
-  categories: CategoryWithPosts[];
-}) {
+export function CategoryShowcase({ categories }: { categories: CategoryWithPosts[] }) {
   const top = useMemo(() => roots(categories), [categories]);
   const tree = useMemo(() => toTree(categories), [categories]);
-  const [activeId, setActiveId] = useState<number | null>(top[0]?.id ?? null);
-  const [openIds, setOpenIds] = useState<Set<number>>(() => new Set(top[0] ? [top[0].id] : []));
-
-  useEffect(() => {
-    if (activeId == null && top[0]) setActiveId(top[0].id);
-  }, [activeId, top]);
-
-  useEffect(() => {
-    if (activeId == null) return;
-    setOpenIds((prev) => {
-      if (prev.has(activeId)) return prev;
-      const next = new Set(prev);
-      next.add(activeId);
-      return next;
-    });
-  }, [activeId]);
-
-  const activeNode = tree.find((n) => n.id === activeId) ?? tree[0];
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [openIds, setOpenIds] = useState<Set<number>>(() => new Set());
+  const activeNode = tree.find((n) => n.id === activeId);
 
   if (top.length === 0) return null;
 
@@ -52,7 +33,10 @@ export function CategoryShowcase({
             <button
               key={cat.id}
               type="button"
-              onClick={() => setActiveId(cat.id)}
+              onClick={() => {
+                setActiveId(selected ? null : cat.id);
+                setOpenIds((prev) => new Set([...prev, cat.id]));
+              }}
               aria-pressed={selected}
               className={cn(
                 "min-h-11 rounded-2xl border px-5 py-5 text-left transition",
@@ -77,12 +61,7 @@ export function CategoryShowcase({
 
       {activeNode ? (
         <div className="mt-10">
-          <CategoryBranch
-            node={activeNode}
-            depth={1}
-            openIds={openIds}
-            onToggle={toggle}
-          />
+          <CategoryBranch node={activeNode} depth={1} openIds={openIds} onToggle={toggle} />
         </div>
       ) : null}
     </div>
@@ -133,9 +112,7 @@ function CategoryBranch({
           ) : null}
           <p className="mt-1 text-[11px] tracking-wide text-slate-500">
             {postCount} article{postCount !== 1 ? "s" : ""}
-            {nestedCount > 0
-              ? ` · ${nestedCount} sous-rubrique${nestedCount > 1 ? "s" : ""}`
-              : ""}
+            {nestedCount > 0 ? ` · ${nestedCount} sous-rubrique${nestedCount > 1 ? "s" : ""}` : ""}
           </p>
         </div>
         <ChevronDown
@@ -150,8 +127,7 @@ function CategoryBranch({
         <div className="mt-4 space-y-4">
           {postCount === 0 && nestedCount === 0 ? (
             <div className="rounded-2xl border border-white/5 bg-navy-800/40 px-5 py-5 text-sm text-slate-500">
-              Les articles de cette rubrique apparaîtront ici, dans l’ordre que vous
-              définissez.
+              Les articles de cette rubrique apparaîtront ici, dans l’ordre que vous définissez.
             </div>
           ) : null}
 
