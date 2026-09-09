@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { isLivePost } from "@/lib/cms/document";
-import { loadPublicDocument } from "@/lib/cms/persist";
 import { renderSitemap } from "@/lib/seo/sitemap";
 
 export const Route = createFileRoute("/sitemap.xml")({
@@ -8,6 +6,10 @@ export const Route = createFileRoute("/sitemap.xml")({
     handlers: {
       GET: async () => {
         try {
+          const [{ loadPublicDocument }, { isLivePost }] = await Promise.all([
+            import("@/lib/cms/persist"),
+            import("@/lib/cms/document"),
+          ]);
           const doc = await loadPublicDocument();
           const now = Date.now();
           // Do not promoteDue here: it changes updated_at to the request time.
