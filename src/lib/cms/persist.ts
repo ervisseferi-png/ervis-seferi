@@ -16,6 +16,11 @@ export const CMS_PUBLIC_SLUG = "cms-public";
 const BUCKET = "images";
 const STATE_PATH = "cms/state.json";
 const PUBLIC_PATH = "cms/public.json";
+const ASSET_PREFIX = "cms/assets";
+const PUBLIC_CACHE_TTL_MS = 60_000;
+
+let publicCache: { expiresAt: number; doc: CmsDocument } | null = null;
+let publicLoad: Promise<CmsDocument> | null = null;
 
 export function usesRemoteCms(): boolean {
   return !canUseSql();
@@ -45,6 +50,61 @@ function authedClient(token: string): SupabaseClient {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     accessToken: async () => token,
   });
+}
+
+type EmbeddedImage = { bytes: Uint8Array; extension: string; mimeType: string };
+
+function decodeEmbeddedImage(value: string): EmbeddedImage | null {
+  const match = /^data:image\/(png|jpe?g|webp|gif)(?:;charset=[^;,]+)?;base64,([a-z0-9+/=\s]+)$/i.exec(
+    value.trim(),
+  );
+  if (!match) return null;
+  const subtype = match[1].toLowerCase();
+  const extension = subtype === "jpeg" ? "jpg" : subtype;
+  const mimeType = extension === "jpg" ? "image/jpeg" : `image/${extension}`;
+  try {
+    const binary = atob(match[2].replace(/\s/g, ""));
+    const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+    return { bytes, extension, mimeType };
+  } catch {
+    return null;
+  }
+}
+
+async function storeEmbeddedImage(client: SupabaseClient, value: string): Promise<string> {
+  const image = decodeEmbeddedImage(value);
+  if (!image) return value;
+  const digest = await crypto.subtle.digest("SHA-256", image.bytes.buffer as ArrayBuffer);
+  const hash = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+  const path = `${ASSET_PREFIX}/${hash}.${image.extension}`;
+  const { error } = await client.storage.from(BUCKET).upload(path, image.bytes, {
+    upsert: false,
+    contentType: image.mimeType,
+    cacheControl: "31536000",
+  });
+  if (error && !/already exists|duplicate/i.test(error.message)) throw error;
+  return client.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+}
+
+async function externalizeEmbeddedImages(
+  client: SupabaseClient,
+  source: CmsDocument,
+): Promise<CmsDocument> {
+  const doc = cloneDocument(source);
+  doc.site.avatar_image = await storeEmbeddedImage(client, doc.site.avatar_image);
+  for (const post of doc.posts) {
+    post.cover_image = await storeEmbeddedImage(client, post.cover_image);
+    const matches = post.content.match(
+      /data:image\/(?:png|jpe?g|webp|gif)(?:;charset=[^;,]+)?;base64,[a-z0-9+/=\s]+/gi,
+    );
+    for (const embedded of new Set(matches ?? [])) {
+      const url = await storeEmbeddedImage(client, embedded);
+      post.content = post.content.replaceAll(embedded, url);
+    }
+  }
+  return doc;
 }
 
 type SiteRow = SiteSettings;
@@ -373,7 +433,7 @@ async function importLegacy(client: SupabaseClient): Promise<CmsDocument | null>
   return imported.posts.length ? imported : null;
 }
 
-export async function loadPublicDocument(): Promise<CmsDocument> {
+async function loadPublicDocumentUncached(): Promise<CmsDocument> {
   if (!usesRemoteCms()) {
     return loadFromSql();
   }
@@ -383,6 +443,22 @@ export async function loadPublicDocument(): Promise<CmsDocument> {
   const fromStorage = await readStorageDocument(client, PUBLIC_PATH);
   if (fromStorage) return mergePowerQuerySeed(fromStorage);
   return mergePowerQuerySeed(emptyDocument());
+}
+
+export async function loadPublicDocument(): Promise<CmsDocument> {
+  const now = Date.now();
+  if (publicCache && publicCache.expiresAt > now) return cloneDocument(publicCache.doc);
+  if (!publicLoad) {
+    publicLoad = loadPublicDocumentUncached()
+      .then((doc) => {
+        publicCache = { expiresAt: Date.now() + PUBLIC_CACHE_TTL_MS, doc };
+        return doc;
+      })
+      .finally(() => {
+        publicLoad = null;
+      });
+  }
+  return cloneDocument(await publicLoad);
 }
 
 export async function loadAdminDocument(
@@ -418,8 +494,9 @@ export async function saveDocument(doc: CmsDocument, token?: string): Promise<vo
     throw new Error("Session expirée. Reconnectez-vous pour enregistrer.");
   }
   const client = authedClient(token);
-  const full = JSON.stringify(doc);
-  const pub = JSON.stringify(publicSnapshot(cloneDocument(doc)));
+  const normalized = await externalizeEmbeddedImages(client, doc);
+  const full = JSON.stringify(normalized);
+  const pub = JSON.stringify(publicSnapshot(cloneDocument(normalized)));
   const errors: string[] = [];
 
   try {
@@ -442,6 +519,7 @@ export async function saveDocument(doc: CmsDocument, token?: string): Promise<vo
         errors[0],
     );
   }
+  publicCache = null;
 }
 
 export async function loadDocumentForRead(): Promise<CmsDocument> {
