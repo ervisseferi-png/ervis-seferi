@@ -30,7 +30,9 @@ export function sanitizeHtml(html: string) {
     .replace(/\son[a-z]+="[^"]*"/gi, "")
     .replace(/\son[a-z]+='[^']*'/gi, "")
     .replace(/\son[a-z]+=\S+/gi, "")
-    .replace(/javascript:/gi, "");
+    .replace(/javascript:/gi, "")
+    .replace(/<img\b(?![^>]*\bloading=)/gi, '<img loading="lazy"')
+    .replace(/<img\b(?![^>]*\bdecoding=)/gi, '<img decoding="async"');
 }
 
 export function sanitizeStoredImage(raw: string, maxChars = 2_200_000) {
