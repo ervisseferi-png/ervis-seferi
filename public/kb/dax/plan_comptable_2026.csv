@@ -1,0 +1,18 @@
+Compte,Libelle,Classe,Nature
+281000,"Amortissements des immobilisations corporelles",2,Immobilisation
+401000,"Fournisseurs",4,Tiers
+411000,"Clients",4,Tiers
+512000,"Banque",5,Trésorerie
+601000,"Achats de matières premières",6,Charge
+606100,"Fournitures non stockables",6,Charge
+613000,"Locations",6,Charge
+621000,"Personnel extérieur",6,Charge
+627000,"Services bancaires et assimilés",6,Charge
+641000,"Rémunérations du personnel",6,Charge
+645000,"Charges de sécurité sociale",6,Charge
+661000,"Charges d'intérêts",6,Charge
+681000,"Dotations aux amortissements",6,Charge
+701000,"Ventes de produits finis",7,Produit
+706000,"Prestations de services",7,Produit
+708000,"Produits des activités annexes",7,Produit
+761000,"Produits financiers",7,Produit
