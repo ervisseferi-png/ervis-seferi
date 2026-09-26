@@ -1,0 +1,18 @@
+Compte,Libelle,Classe,Nature,CategoriePL,Niveau1,Niveau2,Niveau3,SigneAttendu
+281000,"Amortissements des immobilisations corporelles",2,Immobilisation,Hors P&L,,,"",
+401000,"Fournisseurs",4,Tiers,Hors P&L,,,"",
+411000,"Clients",4,Tiers,Hors P&L,,,"",
+512000,"Banque",5,Trésorerie,Hors P&L,,,"",
+601000,"Achats de matières premières",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+606100,"Fournitures non stockables",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+613000,"Locations",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+621000,"Personnel extérieur",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+627000,"Services bancaires et assimilés",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+641000,"Rémunérations du personnel",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges de personnel",1
+645000,"Charges de sécurité sociale",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges de personnel",1
+661000,"Charges d'intérêts",6,Charge,Charges,Resultat net,Resultat financier,"Charges financieres",1
+681000,"Dotations aux amortissements",6,Charge,Charges,Resultat net,Resultat d'exploitation,"Charges d'exploitation",1
+701000,"Ventes de produits finis",7,Produit,Produits,Resultat net,Resultat d'exploitation,"Chiffre d'affaires",-1
+706000,"Prestations de services",7,Produit,Produits,Resultat net,Resultat d'exploitation,"Chiffre d'affaires",-1
+708000,"Produits des activités annexes",7,Produit,Produits,Resultat net,Resultat d'exploitation,"Autres produits d'exploitation",-1
+761000,"Produits financiers",7,Produit,Produits,Resultat net,Resultat financier,"Produits financiers",-1
