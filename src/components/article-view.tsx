@@ -76,10 +76,6 @@ export function ArticleView({
         className="prose-custom mt-12"
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content || "") }}
       />
-
-      <div className="mt-16 border-t border-white/5 pt-8 text-xs text-slate-600">
-        {site.disclaimer}
-      </div>
     </article>
   );
 }
